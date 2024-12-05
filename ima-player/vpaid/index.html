@@ -21,6 +21,7 @@
       background-color: black;
       position: relative;
       margin-top: 20px;
+      background: transparent !important;
     }
     #ad-video {
       width: 100%;
@@ -94,22 +95,29 @@
       width: 100px;
       height: 100px;
     }
-    video {
-  background-color: transparent !important; /* Removes the gray background */
+    /* Force video element background to transparent */
+video {
+  background-color: transparent !important;
+  background: transparent !important;
 }
 
+/* For Safari and iOS-specific controls */
 video::-webkit-media-controls {
-  background-color: transparent !important; /* Ensures controls don't apply a background */
+  background-color: transparent !important;
+  background: transparent !important;
 }
 
 video::-webkit-media-controls-enclosure {
-  background-color: transparent !important; /* Removes enclosure background */
+  background-color: transparent !important;
+  background: transparent !important;
 }
 
+/* Ensure parent container does not add any background */
+
+/* Prevent focus outline from creating a visual artifact */
 video:focus {
-  outline: none; /* Removes any focus outline that might contribute to visual issues */
+  outline: none !important;
 }
-
 
   </style>
 </head>
