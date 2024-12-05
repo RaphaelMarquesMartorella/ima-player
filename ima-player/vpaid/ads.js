@@ -88,13 +88,16 @@ function handleVideoClick(event, video, clickThroughUrl) {
     const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
     if (isTopControl || isBottomControl || isMiddleControl) return;
-
-    if (!document.body.classList.contains('controls-visible')) {
-      document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
-      return;
-    }
   }
+
+  document.body.classList.remove('controls-visible');
+
+  if (!document.body.classList.contains('controls-visible')) {
+    document.body.classList.add('controls-visible');
+    setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
+    return;
+  }
+
 
   if (document.body.classList.contains('controls-visible')) {
     window.open(clickThroughUrl, '_blank');
