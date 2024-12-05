@@ -73,15 +73,13 @@ function handleVideoClick(event, video, clickThroughUrl) {
   const isMobile = window.innerWidth < 768;
 
   if (isMobile) {
-    // Check if the video is in floating mode (custom PiP)
     if (isFloating) {
-      // Handle floating video clicks
       const topControlHeight = rect.height * 0.12;
       const bottomControlHeight = rect.height * 0.1;
       const middleVerticalStart = rect.top + rect.height * 0.4;
       const middleVerticalEnd = rect.top + rect.height * 0.6;
-      const middleHorizontalStart = rect.left + rect.width * 0.25;
-      const middleHorizontalEnd = rect.left + rect.width * 0.75;
+      const middleHorizontalStart = rect.left + rect.width * 0.22;
+      const middleHorizontalEnd = rect.left + rect.width * 0.77;
 
       const isTopControl = event.clientY < rect.top + topControlHeight;
       const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
@@ -91,13 +89,12 @@ function handleVideoClick(event, video, clickThroughUrl) {
       const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
       if (isTopControl || isBottomControl || isMiddleControl) {
-        return; // Ignore clicks on controls in floating mode
+        return;
       } else {
         window.open(clickThroughUrl, '_blank');
         return;
       }
     } else {
-      // Handle main video clicks (non-floating mode)
       if (!video.controls) {
         video.controls = true;
         setTimeout(() => {
@@ -121,14 +118,13 @@ function handleVideoClick(event, video, clickThroughUrl) {
       const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
       if (isTopControl || isBottomControl || isMiddleControl) {
-        return; // Ignore clicks on controls
+        return;
       } else {
         window.open(clickThroughUrl, '_blank');
         return;
       }
     }
   } else {
-    // Desktop behavior remains unchanged
     window.open(clickThroughUrl, '_blank');
   }
 }
