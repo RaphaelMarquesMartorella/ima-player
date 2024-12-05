@@ -129,36 +129,31 @@ async function initialize() {
     videoElement.controls = false;
   }
   videoElement.play();
-  enableFloatingPlayer();
 }
 
 function enableFloatingPlayer() {
-  if (videoElement.paused) return;
+  if (isFloating) return;
   isFloating = true;
   floatingContainer.style.display = 'block';
   floatingVideo.currentTime = videoElement.currentTime;
   floatingVideo.volume = videoElement.volume;
   floatingVideo.muted = videoElement.muted;
   floatingVideo.play();
-  videoElement.pause();
 }
 
 function disableFloatingPlayer() {
+  if (!isFloating) return;
   isFloating = false;
   floatingContainer.style.display = 'none';
   videoElement.currentTime = floatingVideo.currentTime;
   videoElement.volume = floatingVideo.volume;
   videoElement.muted = floatingVideo.muted;
-  if (!floatingVideo.paused) {
-    videoElement.play();
-  } else {
-    videoElement.pause();
-  }
+  videoElement.play();
   floatingVideo.pause();
 }
 
 function synchronizeVideos(sourceVideo, targetVideo) {
-  if (Math.abs(sourceVideo.currentTime - targetVideo.currentTime) > 0.05) {
+  if (Math.abs(sourceVideo.currentTime - targetVideo.currentTime) > 0.1) {
     targetVideo.currentTime = sourceVideo.currentTime;
   }
   targetVideo.muted = sourceVideo.muted;
@@ -184,7 +179,7 @@ closeFloating.addEventListener('click', () => {
 
 const observer = new IntersectionObserver((entries) => {
   const entry = entries[0];
-  if (!entry.isIntersecting && !isFloating && !videoElement.paused) {
+  if (!entry.isIntersecting && !isFloating) {
     enableFloatingPlayer();
   } else if (entry.isIntersecting && isFloating) {
     disableFloatingPlayer();
