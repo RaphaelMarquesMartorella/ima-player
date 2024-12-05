@@ -15,34 +15,21 @@ let trackingFired = {
 };
 
 async function fetchVast() {
-  console.log('Fetching VAST tag...');
   try {
     const response = await fetch(vastTagUrl);
     const vastXml = await response.text();
-
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(vastXml, 'text/xml');
-
     const mediaFile = xmlDoc.querySelector('MediaFile');
     const clickThrough = xmlDoc.querySelector('ClickThrough');
-
-    if (!mediaFile) {
-      throw new Error('MediaFile not found in VAST tag.');
-    }
-
+    if (!mediaFile) throw new Error('MediaFile not found in VAST tag.');
     const videoUrl = mediaFile.textContent.trim();
     const clickThroughUrl = clickThrough ? clickThrough.textContent.trim() : null;
-
     const trackingEvents = {};
     xmlDoc.querySelectorAll('Tracking').forEach((tracking) => {
       const event = tracking.getAttribute('event');
       trackingEvents[event] = tracking.textContent.trim();
     });
-
-    console.log('Media file URL:', videoUrl);
-    console.log('ClickThrough URL:', clickThroughUrl);
-    console.log('Tracking URLs:', trackingEvents);
-
     return { videoUrl, clickThroughUrl, trackingEvents };
   } catch (error) {
     console.error('Error fetching or parsing VAST tag:', error);
@@ -51,10 +38,8 @@ async function fetchVast() {
 
 function fireTrackingEvent(eventName, trackingUrls) {
   if (!trackingUrls[eventName] || trackingFired[eventName]) return;
-  console.log(`Firing ${eventName} tracking URL:`, trackingUrls[eventName]);
   fetch(trackingUrls[eventName])
     .then(() => {
-      console.log(`${eventName} event tracked successfully.`);
       trackingFired[eventName] = true;
     })
     .catch((error) => console.error(`Error tracking ${eventName} event:`, error));
@@ -64,46 +49,52 @@ async function loadAd() {
   try {
     const { videoUrl, clickThroughUrl, trackingEvents } = await fetchVast();
     const loadingOverlay = document.getElementById('loading-overlay');
-
     loadingOverlay.style.display = 'flex';
-
     if (videoUrl) {
       videoElement.src = videoUrl;
       floatingVideo.src = videoUrl;
-
       bindTracking(videoElement, trackingEvents);
       bindTracking(floatingVideo, trackingEvents);
-
       if (clickThroughUrl) {
-        videoElement.addEventListener('click', (e) => {
-          const rect = videoElement.getBoundingClientRect();
-          const isControlArea = e.clientY > rect.bottom - 50;
-          if (!isControlArea) {
-            window.open(clickThroughUrl, '_blank');
-          }
-        });
-
-        floatingVideo.addEventListener('click', (e) => {
-          const rect = floatingVideo.getBoundingClientRect();
-          const isControlArea = e.clientY > rect.bottom - 30;
-          if (!isControlArea) {
-            window.open(clickThroughUrl, '_blank');
-          }
-        });
+        videoElement.addEventListener('click', (e) => handleVideoClick(e, videoElement, clickThroughUrl));
+        floatingVideo.addEventListener('click', (e) => handleVideoClick(e, floatingVideo, clickThroughUrl));
       }
-
       videoElement.addEventListener('loadeddata', () => {
         loadingOverlay.style.display = 'none';
       });
-
-      console.log('Ad video loaded.');
-    } else {
-      console.error('No video URL available.');
     }
   } catch (error) {
-    console.error('Error loading ad video:', error);
     document.getElementById('loading-overlay').style.display = 'none';
   }
+}
+
+function handleVideoClick(event, video, clickThroughUrl) {
+  const rect = video.getBoundingClientRect();
+  const isMobile = window.innerWidth < 768;
+  const controlAreaHeight = 50;
+  const controlAreaTopHeight = 30;
+  const middleControlRadius = 50;
+  const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
+  const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
+  const isMiddleControl = isMobile && isMiddleControlClicked(event, rect, middleControlRadius);
+  if (isBottomControl || isTopControl || isMiddleControl) return;
+  if (isMobile) {
+    if (!video.dataset.touched) {
+      video.dataset.touched = 'true';
+      setTimeout(() => delete video.dataset.touched, 2000);
+      return;
+    }
+  }
+  window.open(clickThroughUrl, '_blank');
+}
+
+function isMiddleControlClicked(event, rect, radius) {
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const distance = Math.sqrt(
+    Math.pow(event.clientX - centerX, 2) + Math.pow(event.clientY - centerY, 2)
+  );
+  return distance <= radius;
 }
 
 function bindTracking(video, trackingUrls) {
@@ -134,11 +125,7 @@ async function initialize() {
 }
 
 function enableFloatingPlayer() {
-  if (videoElement.paused) {
-    console.log("Can't enter PiP when video is paused.");
-    return;
-  }
-
+  if (videoElement.paused) return;
   isFloating = true;
   floatingContainer.style.display = 'block';
   floatingVideo.currentTime = videoElement.currentTime;
@@ -154,7 +141,6 @@ function disableFloatingPlayer() {
   videoElement.currentTime = floatingVideo.currentTime;
   videoElement.volume = floatingVideo.volume;
   videoElement.muted = floatingVideo.muted;
-
   if (!floatingVideo.paused) {
     videoElement.play();
   } else {
