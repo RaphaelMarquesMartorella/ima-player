@@ -71,41 +71,38 @@ async function loadAd() {
 function handleVideoClick(event, video, clickThroughUrl) {
   const rect = video.getBoundingClientRect();
   const isMobile = window.innerWidth < 768;
-  const controlAreaHeight = 50;
-  const controlAreaTopHeight = 30;
-  const middleControlRadius = 50;
-
-  const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
-  const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
-  const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
-
-  if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
     const topControlHeight = rect.height * 0.12;
     const bottomControlHeight = rect.height * 0.1;
-    const middleVerticalStart = rect.top + rect.height * 0.4
+    const middleVerticalStart = rect.top + rect.height * 0.4;
     const middleVerticalEnd = rect.top + rect.height * 0.6;
     const middleHorizontalStart = rect.left + rect.width * 0.25;
     const middleHorizontalEnd = rect.left + rect.width * 0.75;
-  
+
     const isTopControl = event.clientY < rect.top + topControlHeight;
     const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
     const isMiddleVertical = event.clientY > middleVerticalStart && event.clientY < middleVerticalEnd;
     const isMiddleHorizontal = event.clientX > middleHorizontalStart && event.clientX < middleHorizontalEnd;
-  
+
     const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
-  
+
     if (isTopControl || isBottomControl || isMiddleControl) return;
-  
-    if (!document.body.classList.contains('controls-visible')) {
-      document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
-      return;
-    }
   }
-  
-  window.open(clickThroughUrl, '_blank');
+
+  if (document.body.classList.contains('controls-visible')) {
+    window.open(clickThroughUrl, '_blank');
+  }
+}
+
+function showControlsTemporarily(video) {
+  if (window.innerWidth >= 768) return; // Apply only on mobile devices
+
+  video.controls = true; // Show controls
+  clearTimeout(video.controlsTimeout); // Clear any existing timeout
+  video.controlsTimeout = setTimeout(() => {
+    video.controls = false; // Hide controls after 1.5 seconds
+  }, 1500);
 }
 
 function isMiddleControlClicked(event, rect, radius) {
@@ -117,7 +114,6 @@ function isMiddleControlClicked(event, rect, radius) {
 
   return distance <= radius;
 }
-
 
 function bindTracking(video, trackingUrls) {
   video.addEventListener('play', () => fireTrackingEvent('start', trackingUrls));
@@ -144,6 +140,16 @@ function bindTracking(video, trackingUrls) {
 async function initialize() {
   await loadAd();
   videoElement.play();
+
+  if (window.innerWidth < 768) {
+    videoElement.addEventListener('touchstart', () => {
+      showControlsTemporarily(videoElement);
+    });
+
+    floatingVideo.addEventListener('touchstart', () => {
+      showControlsTemporarily(floatingVideo);
+    });
+  }
 }
 
 function enableFloatingPlayer() {
