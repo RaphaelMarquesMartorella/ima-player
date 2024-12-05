@@ -73,46 +73,65 @@ function handleVideoClick(event, video, clickThroughUrl) {
   const isMobile = window.innerWidth < 768;
 
   if (isMobile) {
-    // If controls are not visible, show them and return
-    if (!video.controls) {
-      video.controls = true;
-      // Hide controls after 1.5 seconds
-      setTimeout(() => {
-        video.controls = false;
-      }, 1500);
-      return;
-    }
+    // Check if the video is in floating mode (custom PiP)
+    if (isFloating) {
+      // Handle floating video clicks
+      const topControlHeight = rect.height * 0.12;
+      const bottomControlHeight = rect.height * 0.1;
+      const middleVerticalStart = rect.top + rect.height * 0.4;
+      const middleVerticalEnd = rect.top + rect.height * 0.6;
+      const middleHorizontalStart = rect.left + rect.width * 0.25;
+      const middleHorizontalEnd = rect.left + rect.width * 0.75;
 
-    // Controls are visible
-    // Define control areas
-    const topControlHeight = rect.height * 0.12;
-    const bottomControlHeight = rect.height * 0.1;
-    const middleVerticalStart = rect.top + rect.height * 0.4;
-    const middleVerticalEnd = rect.top + rect.height * 0.6;
-    const middleHorizontalStart = rect.left + rect.width * 0.25;
-    const middleHorizontalEnd = rect.left + rect.width * 0.75;
+      const isTopControl = event.clientY < rect.top + topControlHeight;
+      const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
+      const isMiddleVertical = event.clientY > middleVerticalStart && event.clientY < middleVerticalEnd;
+      const isMiddleHorizontal = event.clientX > middleHorizontalStart && event.clientX < middleHorizontalEnd;
 
-    const isTopControl = event.clientY < rect.top + topControlHeight;
-    const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
-    const isMiddleVertical = event.clientY > middleVerticalStart && event.clientY < middleVerticalEnd;
-    const isMiddleHorizontal = event.clientX > middleHorizontalStart && event.clientX < middleHorizontalEnd;
+      const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
-    const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
-
-    // If the click is on a control area, do nothing
-    if (isTopControl || isBottomControl || isMiddleControl) {
-      return;
+      if (isTopControl || isBottomControl || isMiddleControl) {
+        return; // Ignore clicks on controls in floating mode
+      } else {
+        window.open(clickThroughUrl, '_blank');
+        return;
+      }
     } else {
-      // Clicked on non-control area, perform redirect
-      window.open(clickThroughUrl, '_blank');
-      return;
+      // Handle main video clicks (non-floating mode)
+      if (!video.controls) {
+        video.controls = true;
+        setTimeout(() => {
+          video.controls = false;
+        }, 1500);
+        return;
+      }
+
+      const topControlHeight = rect.height * 0.12;
+      const bottomControlHeight = rect.height * 0.1;
+      const middleVerticalStart = rect.top + rect.height * 0.4;
+      const middleVerticalEnd = rect.top + rect.height * 0.6;
+      const middleHorizontalStart = rect.left + rect.width * 0.25;
+      const middleHorizontalEnd = rect.left + rect.width * 0.75;
+
+      const isTopControl = event.clientY < rect.top + topControlHeight;
+      const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
+      const isMiddleVertical = event.clientY > middleVerticalStart && event.clientY < middleVerticalEnd;
+      const isMiddleHorizontal = event.clientX > middleHorizontalStart && event.clientX < middleHorizontalEnd;
+
+      const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
+
+      if (isTopControl || isBottomControl || isMiddleControl) {
+        return; // Ignore clicks on controls
+      } else {
+        window.open(clickThroughUrl, '_blank');
+        return;
+      }
     }
   } else {
-    // Desktop behavior (if any), or default behavior
+    // Desktop behavior remains unchanged
     window.open(clickThroughUrl, '_blank');
   }
 }
-
 
 function isMiddleControlClicked(event, rect, radius) {
   const centerX = rect.left + rect.width / 2;
