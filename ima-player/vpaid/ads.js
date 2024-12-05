@@ -82,9 +82,19 @@ function handleVideoClick(event, video, clickThroughUrl) {
   if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
+    const controlAreaHeight = 80;
+    const controlAreaTopHeight = 50;
+    const middleControlRadius = rect.width / 4;
+
+    const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
+    const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
+    const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
+
+    if (isBottomControl || isTopControl || isMiddleControl) return;
+
     if (!document.body.classList.contains('controls-visible')) {
       document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 2000);
+      setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
       return;
     }
   }
@@ -99,14 +109,9 @@ function isMiddleControlClicked(event, rect, radius) {
     Math.pow(event.clientX - centerX, 2) + Math.pow(event.clientY - centerY, 2)
   );
 
-  const isInRadius = distance <= radius;
-
-  const skipButtonWidth = 50;
-  const isLeftSkipArea = event.clientX > centerX - skipButtonWidth - radius && event.clientX < centerX - radius;
-  const isRightSkipArea = event.clientX < centerX + skipButtonWidth + radius && event.clientX > centerX + radius;
-
-  return isInRadius || isLeftSkipArea || isRightSkipArea;
+  return distance <= radius;
 }
+
 
 function bindTracking(video, trackingUrls) {
   video.addEventListener('play', () => fireTrackingEvent('start', trackingUrls));
