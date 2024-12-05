@@ -21,33 +21,13 @@
       background-color: black;
       position: relative;
       margin-top: 20px;
-      background: transparent !important;
     }
     #ad-video {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
-    .play-button {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 80px;
-      height: 80px;
-      background: rgba(0, 0, 0, 0.7);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 10;
-    }
-    .play-button svg {
-      fill: white;
-      width: 40px;
-      height: 40px;
-    }
+
     #floating-video-container {
       display: none;
       position: fixed;
@@ -95,30 +75,6 @@
       width: 100px;
       height: 100px;
     }
-    /* Force video element background to transparent */
-video {
-  background-color: transparent !important;
-  background: transparent !important;
-}
-
-/* For Safari and iOS-specific controls */
-video::-webkit-media-controls {
-  background-color: transparent !important;
-  background: transparent !important;
-}
-
-video::-webkit-media-controls-enclosure {
-  background-color: transparent !important;
-  background: transparent !important;
-}
-
-/* Ensure parent container does not add any background */
-
-/* Prevent focus outline from creating a visual artifact */
-video:focus {
-  outline: none !important;
-}
-
   </style>
 </head>
 <body>
