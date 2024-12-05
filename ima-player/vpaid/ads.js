@@ -82,24 +82,25 @@ function handleVideoClick(event, video, clickThroughUrl) {
   if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
-    const controlAreaHeight = 80;
-    const controlAreaTopHeight = 50;
-    const middleControlRadius = rect.width / 4;
-
-    const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
+    const controlAreaBottomHeight = Math.min(rect.height * 0.15, 100); // 15% or 100px max for bottom controls
+    const controlAreaTopHeight = Math.min(rect.height * 0.1, 50); // 10% or 50px max for top controls
+    const middleControlRadius = Math.min(rect.width / 3, 100); // 1/3 of width or 100px max for middle controls
+  
+    const isBottomControl = event.clientY > rect.bottom - controlAreaBottomHeight;
     const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
     const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
-
+  
     if (isBottomControl || isTopControl || isMiddleControl) return;
-
+  
     if (!document.body.classList.contains('controls-visible')) {
       document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
+      setTimeout(() => document.body.classList.remove('controls-visible'), 1500); // Show controls for 1.5 seconds
       return;
     }
   }
-
+  
   window.open(clickThroughUrl, '_blank');
+  
 }
 
 function isMiddleControlClicked(event, rect, radius) {
