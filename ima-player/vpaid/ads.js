@@ -87,21 +87,25 @@ function handleVideoClick(event, video, clickThroughUrl) {
 
     const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
-    if (isTopControl || isBottomControl || isMiddleControl) return;
+    if (isTopControl || isBottomControl || isMiddleControl) {
+      // If the click is in any of the control areas, do nothing
+      return;
+    }
+
+    if (!document.body.classList.contains('controls-visible')) {
+      // If controls are not visible, show them
+      document.body.classList.add('controls-visible');
+      setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
+      return;
+    }
   }
 
-
-  if (!document.body.classList.contains('controls-visible')) {
-    document.body.classList.add('controls-visible');
-    setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
-    return;
-  }
-
-
+  // Redirect only if controls are currently visible
   if (document.body.classList.contains('controls-visible')) {
     window.open(clickThroughUrl, '_blank');
   }
 }
+
 
 function isMiddleControlClicked(event, rect, radius) {
   const centerX = rect.left + rect.width / 2;
