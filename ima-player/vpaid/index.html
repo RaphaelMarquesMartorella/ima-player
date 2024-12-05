@@ -94,6 +94,22 @@
       width: 100px;
       height: 100px;
     }
+    video {
+  background-color: transparent !important; /* Removes the gray background */
+}
+
+video::-webkit-media-controls {
+  background-color: transparent !important; /* Ensures controls don't apply a background */
+}
+
+video::-webkit-media-controls-enclosure {
+  background-color: transparent !important; /* Removes enclosure background */
+}
+
+video:focus {
+  outline: none; /* Removes any focus outline that might contribute to visual issues */
+}
+
 
   </style>
 </head>
