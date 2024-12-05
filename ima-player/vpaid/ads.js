@@ -101,7 +101,7 @@ function handleVideoClick(event, video, clickThroughUrl) {
   }
 
   // Redirect only if controls are currently visible
-  if (document.body.classList.contains('controls-visible')) {
+  if (!document.body.classList.contains('controls-visible')) {
     window.open(clickThroughUrl, '_blank');
   }
 }
