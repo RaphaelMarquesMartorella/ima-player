@@ -71,42 +71,48 @@ async function loadAd() {
 function handleVideoClick(event, video, clickThroughUrl) {
   const rect = video.getBoundingClientRect();
   const isMobile = window.innerWidth < 768;
-  const controlAreaHeight = 50;
-  const controlAreaTopHeight = 30;
-  const middleControlRadius = 50;
-
-  const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
-  const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
-  const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
-
-  if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
+    // If controls are not visible, show them and return
+    if (!video.controls) {
+      video.controls = true;
+      // Hide controls after 1.5 seconds
+      setTimeout(() => {
+        video.controls = false;
+      }, 1500);
+      return;
+    }
+
+    // Controls are visible
+    // Define control areas
     const topControlHeight = rect.height * 0.12;
     const bottomControlHeight = rect.height * 0.1;
-    const middleVerticalStart = rect.top + rect.height * 0.4
+    const middleVerticalStart = rect.top + rect.height * 0.4;
     const middleVerticalEnd = rect.top + rect.height * 0.6;
     const middleHorizontalStart = rect.left + rect.width * 0.25;
     const middleHorizontalEnd = rect.left + rect.width * 0.75;
-  
+
     const isTopControl = event.clientY < rect.top + topControlHeight;
     const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
     const isMiddleVertical = event.clientY > middleVerticalStart && event.clientY < middleVerticalEnd;
     const isMiddleHorizontal = event.clientX > middleHorizontalStart && event.clientX < middleHorizontalEnd;
-  
+
     const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
-  
-    if (isTopControl || isBottomControl || isMiddleControl) return;
-  
-    if (!document.body.classList.contains('controls-visible')) {
-      document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 1500);
+
+    // If the click is on a control area, do nothing
+    if (isTopControl || isBottomControl || isMiddleControl) {
+      return;
+    } else {
+      // Clicked on non-control area, perform redirect
+      window.open(clickThroughUrl, '_blank');
       return;
     }
+  } else {
+    // Desktop behavior (if any), or default behavior
+    window.open(clickThroughUrl, '_blank');
   }
-  
-  window.open(clickThroughUrl, '_blank');
 }
+
 
 function isMiddleControlClicked(event, rect, radius) {
   const centerX = rect.left + rect.width / 2;
@@ -143,8 +149,14 @@ function bindTracking(video, trackingUrls) {
 
 async function initialize() {
   await loadAd();
+
+  if (window.innerWidth < 768) {
+    videoElement.controls = false;
+  }
+
   videoElement.play();
 }
+
 
 function enableFloatingPlayer() {
   if (videoElement.paused) return;
@@ -205,27 +217,4 @@ const observer = new IntersectionObserver((entries) => {
 
 observer.observe(videoElement);
 
-function manageMobileControlsVisibility() {
-  const isMobile = window.innerWidth < 768; // Check for mobile devices
-  if (isMobile) {
-    videoElement.addEventListener('mousemove', handleControlsVisibility);
-    videoElement.addEventListener('touchstart', handleControlsVisibility);
-    videoElement.addEventListener('play', handleControlsVisibility);
-  }
-}
-
-function handleControlsVisibility() {
-  // Always show controls initially
-  videoElement.controls = true;
-
-  // Hide controls after 1.5 seconds
-  clearTimeout(videoElement.controlsTimeout); // Clear any previous timeout to prevent overlap
-  videoElement.controlsTimeout = setTimeout(() => {
-    videoElement.controls = false;
-  }, 1500);
-}
-
-// Call this function after initializing the video element
 initialize();
-manageMobileControlsVisibility();
-
