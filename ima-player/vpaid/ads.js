@@ -73,40 +73,32 @@ function handleVideoClick(event, video, clickThroughUrl) {
   const isMobile = window.innerWidth < 768;
 
   if (isMobile) {
-    const controlAreaHeight = 50;
-    const controlAreaTopHeight = 30;
-    const middleControlRadius = 60;
+    const controlAreaHeight = 100;
+    const middleControlRadius = 120;
 
-    const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
-    const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
-    const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
+    const isControlArea = isControlClicked(event, rect, middleControlRadius, controlAreaHeight);
+    if (isControlArea) return;
 
-    if (isBottomControl || isTopControl || isMiddleControl) return;
-
-    if (!document.body.classList.contains('controls-visible')) {
-      document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 2000);
-      return;
-    }
+    window.open(clickThroughUrl, '_blank');
+  } else {
+    window.open(clickThroughUrl, '_blank');
   }
-
-  window.open(clickThroughUrl, '_blank');
 }
 
-function isMiddleControlClicked(event, rect, radius) {
+function isControlClicked(event, rect, middleRadius, controlHeight) {
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
-  const distance = Math.sqrt(
+
+  const distanceToCenter = Math.sqrt(
     Math.pow(event.clientX - centerX, 2) + Math.pow(event.clientY - centerY, 2)
   );
 
-  const isInRadius = distance <= radius;
+  const inMiddleControl = distanceToCenter <= middleRadius;
 
-  const skipButtonOffsetX = 80; // Adjusted offset for skip buttons
-  const isLeftSkipArea = event.clientX > centerX - skipButtonOffsetX - radius && event.clientX < centerX - radius;
-  const isRightSkipArea = event.clientX < centerX + skipButtonOffsetX + radius && event.clientX > centerX + radius;
+  const inBottomControl = event.clientY > rect.bottom - controlHeight;
+  const inTopControl = event.clientY < rect.top + controlHeight;
 
-  return isInRadius || isLeftSkipArea || isRightSkipArea;
+  return inMiddleControl || inBottomControl || inTopControl;
 }
 
 function bindTracking(video, trackingUrls) {
