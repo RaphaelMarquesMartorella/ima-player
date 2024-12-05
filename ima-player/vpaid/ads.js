@@ -73,32 +73,14 @@ function handleVideoClick(event, video, clickThroughUrl) {
   const isMobile = window.innerWidth < 768;
 
   if (isMobile) {
-    const controlAreaHeight = 100;
-    const middleControlRadius = 120;
-
-    const isControlArea = isControlClicked(event, rect, middleControlRadius, controlAreaHeight);
-    if (isControlArea) return;
-
-    window.open(clickThroughUrl, '_blank');
-  } else {
-    window.open(clickThroughUrl, '_blank');
+    if (!document.body.classList.contains('controls-visible')) {
+      document.body.classList.add('controls-visible');
+      setTimeout(() => document.body.classList.remove('controls-visible'), 1000); // Reduce control list duration to 1 second
+      return;
+    }
   }
-}
 
-function isControlClicked(event, rect, middleRadius, controlHeight) {
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-
-  const distanceToCenter = Math.sqrt(
-    Math.pow(event.clientX - centerX, 2) + Math.pow(event.clientY - centerY, 2)
-  );
-
-  const inMiddleControl = distanceToCenter <= middleRadius;
-
-  const inBottomControl = event.clientY > rect.bottom - controlHeight;
-  const inTopControl = event.clientY < rect.top + controlHeight;
-
-  return inMiddleControl || inBottomControl || inTopControl;
+  window.open(clickThroughUrl, '_blank');
 }
 
 function bindTracking(video, trackingUrls) {
