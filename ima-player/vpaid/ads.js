@@ -71,27 +71,27 @@ async function loadAd() {
 function handleVideoClick(event, video, clickThroughUrl) {
   const rect = video.getBoundingClientRect();
   const isMobile = window.innerWidth < 768;
-  const controlAreaHeight = 50;
-  const controlAreaTopHeight = 30;
-  const middleControlRadius = 50;
-
-  const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
-  const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
-  const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
-
-  if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
-    if (!video.dataset.touched) {
-      video.dataset.touched = 'true';
-      setTimeout(() => delete video.dataset.touched, 2000);
+    const controlAreaHeight = 50;
+    const controlAreaTopHeight = 30;
+    const middleControlRadius = 60;
+
+    const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
+    const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
+    const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
+
+    if (isBottomControl || isTopControl || isMiddleControl) return;
+
+    if (!document.body.classList.contains('controls-visible')) {
+      document.body.classList.add('controls-visible');
+      setTimeout(() => document.body.classList.remove('controls-visible'), 2000);
       return;
     }
   }
 
   window.open(clickThroughUrl, '_blank');
 }
-
 
 function isMiddleControlClicked(event, rect, radius) {
   const centerX = rect.left + rect.width / 2;
@@ -102,9 +102,9 @@ function isMiddleControlClicked(event, rect, radius) {
 
   const isInRadius = distance <= radius;
 
-  const skipButtonWidth = 50; // Approximate width of skip buttons
-  const isLeftSkipArea = event.clientX > centerX - skipButtonWidth - radius && event.clientX < centerX - radius;
-  const isRightSkipArea = event.clientX < centerX + skipButtonWidth + radius && event.clientX > centerX + radius;
+  const skipButtonOffsetX = 80; // Adjusted offset for skip buttons
+  const isLeftSkipArea = event.clientX > centerX - skipButtonOffsetX - radius && event.clientX < centerX - radius;
+  const isRightSkipArea = event.clientX < centerX + skipButtonOffsetX + radius && event.clientX > centerX + radius;
 
   return isInRadius || isLeftSkipArea || isRightSkipArea;
 }
