@@ -7,109 +7,90 @@
 
     const style = document.createElement('style');
     style.textContent = `
-      body {
-      margin: 0;
-      display: flex;
-      height: 200vh;
-      flex-direction: column;
-      align-items: center;
-      background-color: #f0f0f0;
-    }
-    #ad-container {
-      width: 100%;
-      max-width: 640px;
-      aspect-ratio: 16 / 9;
-      background-color: black;
-      position: relative;
-      margin-top: 20px;
-    }
-    #ad-video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-    .play-button {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 80px;
-      height: 80px;
-      background: rgba(0, 0, 0, 0.7);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 10;
-    }
-    .play-button svg {
-      fill: white;
-      width: 40px;
-      height: 40px;
-    }
-    #floating-video-container {
-      display: none;
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      width: 300px;
-      height: 170px;
-      z-index: 1000;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      border-radius: 8px;
-      background-color: black;
-      overflow: hidden;
-    }
-    #floating-video-container video {
-      width: 100%;
-      height: 100%;
-    }
-    #close-floating {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      width: 24px;
-      height: 24px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 50%;
-      color: white;
-      font-size: 16px;
-      line-height: 24px;
-      text-align: center;
-      cursor: pointer;
-    }
-    #loading-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: rgba(0, 0, 0, 0.3);
-      z-index: 5;
-    }
-    #loading-overlay img {
-      width: 100px;
-      height: 100px;
-    }
+        body {
+          margin: 0;
+          display: flex;
+          height: 200vh;
+          flex-direction: column;
+          align-items: center;
+          background-color: #f0f0f0;
+        }
+        #ad-container {
+          width: 100%;
+          max-width: 640px;
+          aspect-ratio: 16 / 9;
+          background-color: black;
+          position: relative;
+          margin-top: 20px;
+        }
+        #ad-video {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+
+        #floating-video-container {
+          display: none;
+          position: fixed;
+          bottom: 10px;
+          right: 10px;
+          width: 300px;
+          height: 170px;
+          z-index: 1000;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          border-radius: 8px;
+          background-color: black;
+          overflow: hidden;
+        }
+        #floating-video-container video {
+          width: 100%;
+          height: 100%;
+        }
+        #close-floating {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          width: 24px;
+          height: 24px;
+          background: rgba(0, 0, 0, 0.5);
+          border-radius: 50%;
+          color: white;
+          font-size: 16px;
+          line-height: 24px;
+          text-align: center;
+          cursor: pointer;
+        }
+        #loading-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: rgba(0, 0, 0, 0.3);
+          z-index: 5;
+        }
+        #loading-overlay img {
+          width: 100px;
+          height: 100px;
+        }
     `;
     document.head.appendChild(style);
 
     playerContainer.innerHTML = `
       <div id="ad-container">
-      <div id="loading-overlay">
-        <img src="https://player-ruddy-beta.vercel.app/ima-player/vpaid/Rolling@1x-1.3s-200px-200px.gif" alt="Loading..." />
-      </div>
-      <video id="ad-video" controls playsinline preload="auto" autoplay muted controlsList="nodownload"></video>
+        <div id="loading-overlay">
+          <img src="https://ima-player.vercel.app/ima-player/vpaid/Rolling@1x-1.3s-200px-200px.gif" alt="Loading..." />
+        </div>
+        <video id="ad-video" controls playsinline preload="auto" autoplay muted controlsList="nodownload"></video>
       </div>
       <div id="floating-video-container">
         <video id="floating-video" controls playsinline preload="auto" muted controlsList="nodownload"></video>
         <div id="close-floating">✕</div>
       </div>
-    `;
+          `;
 
     const vastTagUrl = 'https://metrike-vast4-response.vercel.app/vast.xml';
     const adContainer = document.getElementById('ad-container');
@@ -324,5 +305,4 @@
     observer.observe(videoElement);
     
     initialize();
-    
   })();
