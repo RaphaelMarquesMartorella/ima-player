@@ -74,10 +74,13 @@ function handleVideoClick(event, video, clickThroughUrl) {
   const controlAreaHeight = 50;
   const controlAreaTopHeight = 30;
   const middleControlRadius = 50;
+
   const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
   const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
-  const isMiddleControl = isMobile && isMiddleControlClicked(event, rect, middleControlRadius);
+  const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
+
   if (isBottomControl || isTopControl || isMiddleControl) return;
+
   if (isMobile) {
     if (!video.dataset.touched) {
       video.dataset.touched = 'true';
@@ -85,8 +88,10 @@ function handleVideoClick(event, video, clickThroughUrl) {
       return;
     }
   }
+
   window.open(clickThroughUrl, '_blank');
 }
+
 
 function isMiddleControlClicked(event, rect, radius) {
   const centerX = rect.left + rect.width / 2;
@@ -94,7 +99,14 @@ function isMiddleControlClicked(event, rect, radius) {
   const distance = Math.sqrt(
     Math.pow(event.clientX - centerX, 2) + Math.pow(event.clientY - centerY, 2)
   );
-  return distance <= radius;
+
+  const isInRadius = distance <= radius;
+
+  const skipButtonWidth = 50; // Approximate width of skip buttons
+  const isLeftSkipArea = event.clientX > centerX - skipButtonWidth - radius && event.clientX < centerX - radius;
+  const isRightSkipArea = event.clientX < centerX + skipButtonWidth + radius && event.clientX > centerX + radius;
+
+  return isInRadius || isLeftSkipArea || isRightSkipArea;
 }
 
 function bindTracking(video, trackingUrls) {
