@@ -90,7 +90,6 @@ function handleVideoClick(event, video, clickThroughUrl) {
     if (isTopControl || isBottomControl || isMiddleControl) return;
   }
 
-  document.body.classList.remove('controls-visible');
 
   if (!document.body.classList.contains('controls-visible')) {
     document.body.classList.add('controls-visible');
