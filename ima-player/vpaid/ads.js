@@ -71,16 +71,41 @@ async function loadAd() {
 function handleVideoClick(event, video, clickThroughUrl) {
   const rect = video.getBoundingClientRect();
   const isMobile = window.innerWidth < 768;
+  const controlAreaHeight = 50;
+  const controlAreaTopHeight = 30;
+  const middleControlRadius = 50;
+
+  const isBottomControl = event.clientY > rect.bottom - controlAreaHeight;
+  const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
+  const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
+
+  if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
     if (!document.body.classList.contains('controls-visible')) {
       document.body.classList.add('controls-visible');
-      setTimeout(() => document.body.classList.remove('controls-visible'), 1000); // Reduce control list duration to 1 second
+      setTimeout(() => document.body.classList.remove('controls-visible'), 2000);
       return;
     }
   }
 
   window.open(clickThroughUrl, '_blank');
+}
+
+function isMiddleControlClicked(event, rect, radius) {
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const distance = Math.sqrt(
+    Math.pow(event.clientX - centerX, 2) + Math.pow(event.clientY - centerY, 2)
+  );
+
+  const isInRadius = distance <= radius;
+
+  const skipButtonWidth = 50;
+  const isLeftSkipArea = event.clientX > centerX - skipButtonWidth - radius && event.clientX < centerX - radius;
+  const isRightSkipArea = event.clientX < centerX + skipButtonWidth + radius && event.clientX > centerX + radius;
+
+  return isInRadius || isLeftSkipArea || isRightSkipArea;
 }
 
 function bindTracking(video, trackingUrls) {
