@@ -82,15 +82,21 @@ function handleVideoClick(event, video, clickThroughUrl) {
   if (isBottomControl || isTopControl || isMiddleControl) return;
 
   if (isMobile) {
-    const controlAreaBottomHeight = Math.min(rect.height * 0.15, 100); // 15% or 100px max for bottom controls
-    const controlAreaTopHeight = Math.min(rect.height * 0.1, 50); // 10% or 50px max for top controls
-    const middleControlRadius = Math.min(rect.width / 3, 100); // 1/3 of width or 100px max for middle controls
+    const topControlHeight = rect.height * 0.15; // Top 15% of the video
+    const bottomControlHeight = rect.height * 0.15; // Bottom 15% of the video
+    const middleVerticalStart = rect.top + rect.height * 0.4; // Start of 40%-60% range
+    const middleVerticalEnd = rect.top + rect.height * 0.6; // End of 40%-60% range
+    const middleHorizontalStart = rect.left + rect.width * 0.25; // Start of horizontal 25%-75% range
+    const middleHorizontalEnd = rect.left + rect.width * 0.75; // End of horizontal 25%-75% range
   
-    const isBottomControl = event.clientY > rect.bottom - controlAreaBottomHeight;
-    const isTopControl = event.clientY < rect.top + controlAreaTopHeight;
-    const isMiddleControl = isMiddleControlClicked(event, rect, middleControlRadius);
+    const isTopControl = event.clientY < rect.top + topControlHeight;
+    const isBottomControl = event.clientY > rect.bottom - bottomControlHeight;
+    const isMiddleVertical = event.clientY > middleVerticalStart && event.clientY < middleVerticalEnd;
+    const isMiddleHorizontal = event.clientX > middleHorizontalStart && event.clientX < middleHorizontalEnd;
   
-    if (isBottomControl || isTopControl || isMiddleControl) return;
+    const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
+  
+    if (isTopControl || isBottomControl || isMiddleControl) return;
   
     if (!document.body.classList.contains('controls-visible')) {
       document.body.classList.add('controls-visible');
@@ -100,6 +106,7 @@ function handleVideoClick(event, video, clickThroughUrl) {
   }
   
   window.open(clickThroughUrl, '_blank');
+  
   
 }
 
