@@ -1,5 +1,4 @@
 const vastTagUrl = 'https://metrike-vast4-response.vercel.app/vast.xml';
-const adContainer = document.getElementById('ad-container');
 const videoElement = document.getElementById('ad-video');
 const floatingContainer = document.getElementById('floating-video-container');
 const floatingVideo = document.getElementById('floating-video');
@@ -15,6 +14,7 @@ let trackingFired = {
 };
 let viewableFired = false;
 let isPlaybackCompleted = false;
+let activeVideo = null;
 let lastEventSource = null;
 
 async function fetchVast() {
@@ -61,23 +61,24 @@ async function fetchViewableImpression() {
 
 async function trackCombinedViewableImpression() {
   const viewableUrl = await fetchViewableImpression();
-
-  if (!viewableUrl) {
-    return;
-  }
+  if (!viewableUrl) return;
 
   let visibilityTimer = null;
 
   const observer = new IntersectionObserver((entries) => {
-    const visibleEntries = entries.filter((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5);
+    const visibleEntries = entries.filter(
+      (entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5
+    );
 
     if (visibleEntries.length > 0) {
       if (!visibilityTimer) {
         visibilityTimer = setTimeout(() => {
-          if (!viewableFired) {
+          if (!viewableFired && !isPlaybackCompleted) {
             fetch(viewableUrl)
               .then(() => console.log('Viewable impression tracked:', viewableUrl))
-              .catch((error) => console.error('Error tracking viewable impression:', error));
+              .catch((error) =>
+                console.error('Error tracking viewable impression:', error)
+              );
             viewableFired = true;
           }
         }, 3000);
@@ -103,41 +104,68 @@ function fireTrackingEvent(eventName, trackingUrls) {
     .catch((error) => console.error(`Error tracking ${eventName} event:`, error));
 }
 
-function bindTracking(trackingUrls) {
-  let activeVideo = null;
-  let isPlaybackCompleted = false;
-  let lastEventSource = null;
+let ranEvents = {
+  ranStart: false,
+  ranFirst: false,
+  ranMid: false,
+  ranThird: false,
+  ranComplete: false
+};
 
+function bindTracking(trackingUrls) {
   const onTimeUpdate = (video) => {
     if (video !== activeVideo || isPlaybackCompleted) return;
 
     const quartile = video.currentTime / video.duration;
-    if (quartile >= 0.25 && !trackingFired.firstQuartile) {
+
+    if (quartile >= 0.25 && !trackingFired.firstQuartile && ranEvents.ranFirst === false) {
       fireTrackingEvent('firstQuartile', trackingUrls);
+      ranEvents.ranFirst = true;
     }
-    if (quartile >= 0.5 && !trackingFired.midpoint) {
+
+    if (quartile >= 0.5 && !trackingFired.midpoint && ranEvents.ranMid === false) {
       fireTrackingEvent('midpoint', trackingUrls);
+      ranEvents.ranMid = true;
     }
-    if (quartile >= 0.75 && !trackingFired.thirdQuartile) {
+
+    if (quartile >= 0.75 && !trackingFired.thirdQuartile && ranEvents.ranThird === false) {
       fireTrackingEvent('thirdQuartile', trackingUrls);
+      ranEvents.ranThird = true;
     }
   };
 
   [videoElement, floatingVideo].forEach((video) => {
     video.addEventListener('play', () => {
-      if (video === lastEventSource || isPlaybackCompleted) return;
+      if (video === lastEventSource || trackingFired.start) return;
       lastEventSource = video;
       activeVideo = video;
-      fireTrackingEvent('start', trackingUrls);
     });
 
     video.addEventListener('timeupdate', () => onTimeUpdate(video));
 
+    video.addEventListener('play', () => {
+      if (!trackingFired.start && ranEvents.ranStart === false) {
+        fireTrackingEvent('start', trackingUrls);
+        ranEvents.ranStart = true;
+      }
+    });
+
     video.addEventListener('ended', () => {
       if (isPlaybackCompleted) return;
       fireTrackingEvent('complete', trackingUrls);
+      ranEvents.ranStart = false;
+      ranEvents.ranFirst = false;
+      ranEvents.ranMid = false;
+      ranEvents.ranThird = false;
       isPlaybackCompleted = true;
+
       resetTrackingFlags();
+    });
+
+    video.addEventListener('seeked', () => {
+      if (isPlaybackCompleted) {
+        resetTrackingFlags();
+      }
     });
 
     video.addEventListener('volumechange', () => {
@@ -147,13 +175,8 @@ function bindTracking(trackingUrls) {
     });
 
     video.addEventListener('pause', () => {
-
-      if (video !== activeVideo || isPlaybackCompleted || video.ended) return;
+      if (video !== activeVideo || video.ended) return;
       fireTrackingEvent('pause', trackingUrls);
-    });
-
-    video.addEventListener('seeked', () => {
-      if (isPlaybackCompleted) resetTrackingFlags();
     });
   });
 }
@@ -211,7 +234,6 @@ function handleVideoClick(event, video, clickThroughUrl) {
 
     const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
-
     if (isTopControl || isBottomControl || isMiddleControl) return;
 
     if (!document.body.classList.contains('controls-visible')) {
@@ -244,28 +266,39 @@ async function initialize() {
 }
 
 function enableFloatingPlayer() {
-  if (videoElement.paused) return;
+  if (videoElement.paused || isFloating) return;
+
   isFloating = true;
   floatingContainer.style.display = 'block';
-  floatingVideo.currentTime = videoElement.currentTime;
-  floatingVideo.volume = videoElement.volume;
-  floatingVideo.muted = videoElement.muted;
+
+  synchronizeVideos(videoElement, floatingVideo);
+
+  activeVideo = floatingVideo;
   floatingVideo.play();
   videoElement.pause();
 }
 
 function disableFloatingPlayer() {
+  if (!isFloating) return;
+
   isFloating = false;
   floatingContainer.style.display = 'none';
-  videoElement.currentTime = floatingVideo.currentTime;
-  videoElement.volume = floatingVideo.volume;
-  videoElement.muted = floatingVideo.muted;
+
+  synchronizeVideos(floatingVideo, videoElement);
+  activeVideo = videoElement;
+
   if (!floatingVideo.paused) {
     videoElement.play();
   } else {
     videoElement.pause();
   }
   floatingVideo.pause();
+}
+
+function synchronizeVideos(sourceVideo, targetVideo) {
+  targetVideo.currentTime = sourceVideo.currentTime;
+  targetVideo.muted = sourceVideo.muted;
+  targetVideo.volume = sourceVideo.volume;
 }
 
 videoElement.addEventListener('timeupdate', () => {
