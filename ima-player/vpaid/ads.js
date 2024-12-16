@@ -211,6 +211,7 @@ function handleVideoClick(event, video, clickThroughUrl) {
 
     const isMiddleControl = isMiddleVertical && isMiddleHorizontal;
 
+
     if (isTopControl || isBottomControl || isMiddleControl) return;
 
     if (!document.body.classList.contains('controls-visible')) {
@@ -219,6 +220,7 @@ function handleVideoClick(event, video, clickThroughUrl) {
       return;
     }
   } else {
+
     const topClickableHeight = rect.height * 0.2;
     const bottomClickableHeight = rect.height * 0.2;
     const sidePadding = rect.width * 0.1;
@@ -229,13 +231,9 @@ function handleVideoClick(event, video, clickThroughUrl) {
       event.clientX > rect.left + sidePadding &&
       event.clientX < rect.right - sidePadding;
 
-    if (!isClickable) {
-      console.log('Click ignored: Outside clickable area');
-      return;
-    }
+    if (!isClickable) return;
   }
 
-  // Open clickThroughUrl only for valid clickable regions
   window.open(clickThroughUrl, '_blank');
 }
 
