@@ -17,6 +17,8 @@ let isPlaybackCompleted = false;
 let activeVideo = null;
 let lastEventSource = null;
 
+let isSeeking = false;
+
 async function fetchVast() {
   try {
     const response = await fetch(vastTagUrl);
@@ -61,16 +63,17 @@ async function fetchViewableImpression() {
 
 async function trackCombinedViewableImpression() {
   const viewableUrl = await fetchViewableImpression();
-  if (!viewableUrl) return;
+  if (!viewableUrl || viewableFired) return;
 
   let visibilityTimer = null;
 
   const observer = new IntersectionObserver((entries) => {
-    const visibleEntries = entries.filter(
-      (entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5
+    const isVisible = entries.some(
+      (entry) =>
+        entry.isIntersecting && entry.intersectionRatio >= 0.5
     );
 
-    if (visibleEntries.length > 0) {
+    if (isVisible && !viewableFired) {
       if (!visibilityTimer) {
         visibilityTimer = setTimeout(() => {
           if (!viewableFired && !isPlaybackCompleted) {
@@ -95,88 +98,113 @@ async function trackCombinedViewableImpression() {
   observer.observe(floatingVideo);
 }
 
+
 function fireTrackingEvent(eventName, trackingUrls) {
-  if (!trackingUrls[eventName] || trackingFired[eventName]) return;
+  const unlimitedEvents = ['pause', 'mute', 'unmute'];
+
+  if (!trackingUrls[eventName]) return;
+
+  if (!unlimitedEvents.includes(eventName) && trackingFired[eventName]) return;
+
   fetch(trackingUrls[eventName])
     .then(() => {
-      trackingFired[eventName] = true;
+      console.log(`${eventName} event fired`);
+      if (!unlimitedEvents.includes(eventName)) {
+        trackingFired[eventName] = true;
+      }
     })
     .catch((error) => console.error(`Error tracking ${eventName} event:`, error));
 }
 
-let ranEvents = {
-  ranStart: false,
-  ranFirst: false,
-  ranMid: false,
-  ranThird: false,
-  ranComplete: false
-};
-
 function bindTracking(trackingUrls) {
-  const onTimeUpdate = (video) => {
-    if (video !== activeVideo || isPlaybackCompleted) return;
-
-    const quartile = video.currentTime / video.duration;
-
-    if (quartile >= 0.25 && !trackingFired.firstQuartile && ranEvents.ranFirst === false) {
-      fireTrackingEvent('firstQuartile', trackingUrls);
-      ranEvents.ranFirst = true;
-    }
-
-    if (quartile >= 0.5 && !trackingFired.midpoint && ranEvents.ranMid === false) {
-      fireTrackingEvent('midpoint', trackingUrls);
-      ranEvents.ranMid = true;
-    }
-
-    if (quartile >= 0.75 && !trackingFired.thirdQuartile && ranEvents.ranThird === false) {
-      fireTrackingEvent('thirdQuartile', trackingUrls);
-      ranEvents.ranThird = true;
-    }
-  };
-
   [videoElement, floatingVideo].forEach((video) => {
     video.addEventListener('play', () => {
-      if (video === lastEventSource || trackingFired.start) return;
+      if (video.currentTime === 0) {
+        isPlaybackCompleted = false;
+        resetTrackingFlags();
+      }
+
+      if (!trackingFired.start) {
+        fireTrackingEvent('start', trackingUrls);
+        trackingFired.start = true;
+        console.log('Start event fired');
+      }
+
       lastEventSource = video;
       activeVideo = video;
     });
 
-    video.addEventListener('timeupdate', () => onTimeUpdate(video));
+    video.addEventListener('timeupdate', () => {
+      if (video !== activeVideo || isPlaybackCompleted) return;
 
-    video.addEventListener('play', () => {
-      if (!trackingFired.start && ranEvents.ranStart === false) {
-        fireTrackingEvent('start', trackingUrls);
-        ranEvents.ranStart = true;
+      const quartile = video.currentTime / video.duration;
+
+      if (quartile >= 0.25 && !trackingFired.firstQuartile) {
+        fireTrackingEvent('firstQuartile', trackingUrls);
+        trackingFired.firstQuartile = true;
+      }
+
+      if (quartile >= 0.5 && !trackingFired.midpoint) {
+        fireTrackingEvent('midpoint', trackingUrls);
+        trackingFired.midpoint = true;
+      }
+
+      if (quartile >= 0.75 && !trackingFired.thirdQuartile) {
+        fireTrackingEvent('thirdQuartile', trackingUrls);
+        trackingFired.thirdQuartile = true;
+      }
+
+      if (
+        video.currentTime >= video.duration * 0.99 &&
+        !trackingFired.complete &&
+        !isPlaybackCompleted
+      ) {
+        fireTrackingEvent('complete', trackingUrls);
+        trackingFired.complete = true;
+        isPlaybackCompleted = true;
+        console.log('Complete event fired during timeupdate');
       }
     });
 
     video.addEventListener('ended', () => {
-      if (isPlaybackCompleted) return;
-      fireTrackingEvent('complete', trackingUrls);
-      ranEvents.ranStart = false;
-      ranEvents.ranFirst = false;
-      ranEvents.ranMid = false;
-      ranEvents.ranThird = false;
-      isPlaybackCompleted = true;
-
-      resetTrackingFlags();
+      if (!isPlaybackCompleted) {
+        fireTrackingEvent('complete', trackingUrls);
+        trackingFired.complete = true;
+        isPlaybackCompleted = true;
+        console.log('Complete event fired at video end');
+      }
     });
 
-    video.addEventListener('seeked', () => {
-      if (isPlaybackCompleted) {
-        resetTrackingFlags();
+    floatingVideo.addEventListener('ended', () => {
+      if (isFloating) {
+        floatingContainer.style.display = 'none';
+        isFloating = false;
+        activeVideo = null;
       }
+    });
+
+    video.addEventListener('seeking', () => {
+      isSeeking = true;
+    });
+
+    const nearEndThreshold = 0.99;
+    video.addEventListener('seeked', () => {
+      const maxAllowedTime = video.duration * nearEndThreshold;
+      if (video.currentTime > maxAllowedTime) {
+        video.currentTime = maxAllowedTime;
+      }
+      isSeeking = false;
+    });
+
+    video.addEventListener('pause', () => {
+      if (isSeeking || video.ended || isPlaybackCompleted) return;
+      fireTrackingEvent('pause', trackingUrls);
     });
 
     video.addEventListener('volumechange', () => {
       if (video !== activeVideo) return;
       const event = video.muted ? 'mute' : 'unmute';
       fireTrackingEvent(event, trackingUrls);
-    });
-
-    video.addEventListener('pause', () => {
-      if (video !== activeVideo || video.ended) return;
-      fireTrackingEvent('pause', trackingUrls);
     });
   });
 }
@@ -191,7 +219,6 @@ function resetTrackingFlags() {
   };
   isPlaybackCompleted = false;
 }
-
 
 async function loadAd() {
   try {
@@ -208,6 +235,7 @@ async function loadAd() {
       }
       videoElement.addEventListener('loadeddata', () => {
         loadingOverlay.style.display = 'none';
+        videoElement.play();
       });
     }
   } catch (error) {
@@ -262,11 +290,16 @@ function handleVideoClick(event, video, clickThroughUrl) {
 async function initialize() {
   await loadAd();
   await trackCombinedViewableImpression();
-  videoElement.play();
+}
+
+function synchronizeVideos(sourceVideo, targetVideo) {
+  targetVideo.currentTime = sourceVideo.currentTime;
+  targetVideo.muted = sourceVideo.muted;
+  targetVideo.volume = sourceVideo.volume;
 }
 
 function enableFloatingPlayer() {
-  if (videoElement.paused || isFloating) return;
+  if (videoElement.paused || isFloating || isPlaybackCompleted) return;
 
   isFloating = true;
   floatingContainer.style.display = 'block';
@@ -274,8 +307,8 @@ function enableFloatingPlayer() {
   synchronizeVideos(videoElement, floatingVideo);
 
   activeVideo = floatingVideo;
-  floatingVideo.play();
-  videoElement.pause();
+  
+  if (floatingVideo.paused && !isPlaybackCompleted) floatingVideo.play();
 }
 
 function disableFloatingPlayer() {
@@ -285,21 +318,12 @@ function disableFloatingPlayer() {
   floatingContainer.style.display = 'none';
 
   synchronizeVideos(floatingVideo, videoElement);
+
   activeVideo = videoElement;
-
-  if (!floatingVideo.paused) {
-    videoElement.play();
-  } else {
-    videoElement.pause();
-  }
-  floatingVideo.pause();
+  
+  if (videoElement.paused && !isPlaybackCompleted) videoElement.play();
 }
 
-function synchronizeVideos(sourceVideo, targetVideo) {
-  targetVideo.currentTime = sourceVideo.currentTime;
-  targetVideo.muted = sourceVideo.muted;
-  targetVideo.volume = sourceVideo.volume;
-}
 
 videoElement.addEventListener('timeupdate', () => {
   if (isFloating && Math.abs(videoElement.currentTime - floatingVideo.currentTime) > 0.1) {
@@ -320,6 +344,7 @@ closeFloating.addEventListener('click', () => {
 
 const observer = new IntersectionObserver((entries) => {
   const entry = entries[0];
+  if (isPlaybackCompleted) return;
   if (!entry.isIntersecting && !isFloating && !videoElement.paused) {
     enableFloatingPlayer();
   } else if (entry.isIntersecting && isFloating) {
