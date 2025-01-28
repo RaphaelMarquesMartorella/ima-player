@@ -83,6 +83,7 @@
       }
     `;
     document.head.appendChild(style);
+    
 
     playerContainer.innerHTML = `
       <div id="ad-container">
