@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video with Initial Play Button, PiP, and Shade</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin: 20px auto;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      display: block;
+    }
+
+    .play-button, .pause-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: background 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    }
+
+    .play-button:hover, .pause-overlay:hover {
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    .play-button svg, .pause-overlay svg {
+      fill: white;
+      width: 40px;
+      height: 40px;
+    }
+
+    .pause-overlay {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .pause-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .spacer {
+      height: 2000px;
+    }
+  </style>
+    <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+</head>
+<body>
+  <div class="video-container">
+    <video id="video" controls playsinline>
+      <source src="https://samplelib.com/lib/preview/mp4/sample-15s.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <div class="shade" id="shade"></div>
+    <div class="play-button" id="play-button">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    </div>
+    <div class="pause-overlay" id="pause-overlay">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
+      </svg>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div id="floating-video-container">
+    <video id="floating-video" controls></video>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const playButton = document.getElementById('play-button');
+    const pauseOverlay = document.getElementById('pause-overlay');
+    video.muted = true
+    video.pause = true;
+    video.controls = false;
+    const floatingContainer = document.getElementById('floating-video-container');
+    const floatingVideo = document.getElementById('floating-video');
+
+    let adDisplayContainer;
+    let adsLoader;
+    let adsManager;
+
+    // Initialize IMA SDK
+    function initializeIMA() {
+      adDisplayContainer = new google.ima.AdDisplayContainer(adContainer, video);
+      adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+
+      adsLoader.addEventListener(
+        google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED,
+        onAdsManagerLoaded,
+        false
+      );
+
+      adsLoader.addEventListener(
+        google.ima.AdErrorEvent.Type.AD_ERROR,
+        onAdError,
+        false
+      );
+
+      const adsRequest = new google.ima.AdsRequest();
+      adsRequest.adTagUrl = 'https://metrike-vpaid.vercel.app/vast.xml';
+      adsRequest.linearAdSlotWidth = video.offsetWidth;
+      adsRequest.linearAdSlotHeight = video.offsetHeight;
+      adsRequest.nonLinearAdSlotWidth = video.offsetWidth;
+      adsRequest.nonLinearAdSlotHeight = video.offsetHeight / 3;
+
+      adsLoader.requestAds(adsRequest);
+    }
+
+    function onAdsManagerLoaded(event) {
+      adsManager = event.getAdsManager(video);
+
+      adsManager.addEventListener(
+        google.ima.AdErrorEvent.Type.AD_ERROR,
+        onAdError
+      );
+
+      adsManager.addEventListener(
+        google.ima.AdEvent.Type.CONTENT_RESUME_REQUESTED,
+        onContentResumeRequested
+      );
+
+      adsManager.addEventListener(
+        google.ima.AdEvent.Type.CONTENT_PAUSE_REQUESTED,
+        onContentPauseRequested
+      );
+
+      try {
+        adsManager.init(video.offsetWidth, video.offsetHeight, google.ima.ViewMode.NORMAL);
+        adsManager.start();
+      } catch (adError) {
+        console.error('Ad Error:', adError);
+        video.play();
+      }
+    }
+
+    function onAdError(event) {
+      console.error('Ad Error:', event.getError());
+      if (adsManager) {
+        adsManager.destroy();
+      }
+      video.play();
+    }
+
+    function onContentPauseRequested() {
+      video.pause();
+    }
+
+    function onContentResumeRequested() {
+      video.play();
+    }
+
+    // Initial play button
+    playButton.addEventListener('click', () => {
+      
+      video.play();
+      video.controls = true; // Enable controls after the initial play
+      video.style.pointerEvents = 'auto'; // Enable video interactions
+      playButton.style.display = 'none'; // Remove the play button
+    });
+    // Shade effect on pause/unpause
+    video.addEventListener('pause', () => {
+      shade.classList.add('active');
+      playButton.style.display = 'none';
+      pauseOverlay.classList.add('active');
+    });
+
+    video.addEventListener('play', () => {
+      shade.classList.remove('active');
+      pauseOverlay.classList.remove('active');
+    });
+
+    // Picture-in-Picture or floating player fallback
+    if ('pictureInPictureEnabled' in document) {
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (!entry.isIntersecting) {
+          video.requestPictureInPicture().catch((error) => {
+            console.error('Error enabling PiP:', error);
+          });
+        } else if (document.pictureInPictureElement) {
+          document.exitPictureInPicture().catch((error) => {
+            console.error('Error exiting PiP:', error);
+          });
+        }
+      });
+      observer.observe(video);
+    } else {
+      console.warn('Picture-in-Picture not supported, using floating player.');
+
+      const observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        if (!entry.isIntersecting) {
+          floatingContainer.style.display = 'block';
+          floatingVideo.src = video.currentSrc;
+          floatingVideo.currentTime = video.currentTime;
+          floatingVideo.play();
+        } else {
+          floatingContainer.style.display = 'none';
+          floatingVideo.pause();
+        }
+      });
+      observer.observe(video);
+
+      // Sync play/pause events
+      video.addEventListener('play', () => {
+        if (floatingContainer.style.display === 'block') {
+          floatingVideo.play();
+        }
+      });
+
+      video.addEventListener('pause', () => {
+        if (floatingContainer.style.display === 'block') {
+          floatingVideo.pause();
+        }
+      });
+
+      floatingVideo.addEventListener('timeupdate', () => {
+        video.currentTime = floatingVideo.currentTime;
+      });
+    }
+  </script>
+</body>
+</html>

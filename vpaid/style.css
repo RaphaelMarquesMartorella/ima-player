@@ -1,0 +1,32 @@
+/* Responsive container for the video */
+#ad-container {
+  width: 100%; /* Full width of the parent container */
+  max-width: 640px; /* Restrict to 640px on larger screens */
+  background-color: black; /* Background color for fallback */
+  margin: 20px auto; /* Center the container */
+  position: relative; /* Enable absolute positioning for overlays */
+  padding-top: 56.25%; /* Maintain 16:9 aspect ratio using padding hack */
+}
+
+/* Make the video fill the container */
+#ad-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%; /* Full width of the container */
+  height: 100%; /* Full height of the container */
+  object-fit: cover; /* Ensure proper scaling without distortion */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  #ad-container {
+    margin: 10px auto; /* Adjust margins for tablets */
+  }
+}
+
+@media (max-width: 480px) {
+  #ad-container {
+    margin: 5px auto; /* Further reduce margins for mobile */
+  }
+}

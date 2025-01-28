@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Enhanced IMA SDK Player with OMID Support</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    #video-player {
+      position: relative;
+      width: 640px;
+      max-width: 100%;
+    }
+
+    video {
+      width: 100%;
+      border-radius: 10px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    #ad-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #play-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #play-button:hover {
+      background-color: #218838;
+    }
+  </style>
+  <script src="https://imasdk.googleapis.com/js/sdkloader/ima3.js"></script>
+  <script src="https://metrike-omid-tag.vercel.app/Session-Client/omid-session-client-v1.js"></script>
+  <script src="https://metrike-omid-tag.vercel.app/Verification-Client/omid-verification-client-v1.js"></script>
+  <script src="https://metrike-omid-tag.vercel.app/Service/omsdk-v1.js"></script> <!-- OMID SDK -->
+</head>
+<body>
+
+  <div id="video-player">
+    <video id="video-element" controls>
+      <source src="https://samplelib.com/lib/preview/mp4/sample-5s.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <div id="ad-container"></div>
+  </div>
+  <button id="play-button">Play</button>
+
+  <script>
+    var videoElement;
+    var adsLoader;
+    var adsManager;
+    var adDisplayContainer;
+    var adsRenderingSettings;
+    var adsLoaded = false;
+
+    window.addEventListener('load', function() {
+      videoElement = document.getElementById('video-element');
+      var playButton = document.getElementById('play-button');
+
+      // Initialize IMA SDK and set up ad display container
+      initializeIMA();
+
+      // Play button starts video and loads ads
+      playButton.addEventListener('click', function() {
+        videoElement.currentTime = 0; // Reset video
+        videoElement.play();
+        loadAds(); // Load ads every time the button is clicked
+      });
+    });
+
+    // Initialize the IMA SDK
+    function initializeIMA() {
+
+      var adContainer = document.getElementById('ad-container');
+      adDisplayContainer = new google.ima.AdDisplayContainer(adContainer, videoElement);
+
+      adsLoader = new google.ima.AdsLoader(adDisplayContainer);
+
+      // Add listeners for when ads are loaded or errors occur
+      adsLoader.addEventListener(google.ima.AdsManagerLoadedEvent.Type.ADS_MANAGER_LOADED, onAdsManagerLoaded, false);
+      adsLoader.addEventListener(google.ima.AdErrorEvent.Type.AD_ERROR, onAdError, false);
+
+      // Trigger contentComplete() when video finishes
+      videoElement.addEventListener('ended', function() {
+        adsLoader.contentComplete();
+      });
+    }
+
+    // Load ads when the play button is clicked
+    function loadAds() {
+      adsLoaded = false;
+
+      // Prevent triggering playback when ads are loading
+      videoElement.pause();
+
+      // Initialize the AdDisplayContainer for mobile devices
+      adDisplayContainer.initialize();
+
+      var adsRequest = new google.ima.AdsRequest();
+      adsRequest.adTagUrl = 'https://metrike-omid-tag.vercel.app/vast.xml'; // Replace with your VAST tag URL
+
+      adsRequest.linearAdSlotWidth = videoElement.clientWidth;
+      adsRequest.linearAdSlotHeight = videoElement.clientHeight;
+      adsRequest.nonLinearAdSlotWidth = videoElement.clientWidth;
+      adsRequest.nonLinearAdSlotHeight = videoElement.clientHeight / 3;
+
+      // Remove omidAccessModeRules to allow any vendor
+      adsRequest.omidAccessModeRules = undefined;
+
+      adsLoader.requestAds(adsRequest);
+    }
+
+    // Handle the loaded AdsManager
+    function onAdsManagerLoaded(adsManagerLoadedEvent) {
+      adsManager = adsManagerLoadedEvent.getAdsManager(videoElement);
+      console.log('AdsManager:', adsManager);
+
+      // Define the rendering settings for ads
+      adsRenderingSettings = new google.ima.AdsRenderingSettings();
+
+      // Set the OMID access mode to FULL (can be adjusted if needed)
+      adsRenderingSettings.omidAccessMode = google.ima.OmidAccessMode.FULL;
+
+      // Pass the rendering settings to the ads manager
+      adsManager.init(videoElement.clientWidth, videoElement.clientHeight, google.ima.ViewMode.NORMAL, adsRenderingSettings);
+
+      try {
+        adsManager.start();
+      } catch (adError) {
+        console.log('Error starting ads: ' + adError);
+        videoElement.play();
+      }
+
+      // Integrate OMID functionality if available
+      initializeOMID();
+    }
+
+    // Check if OMID is available and log OMID-related events
+    function initializeOMID() {
+      if (window.omidBridge) {
+        console.log('OMID is available via omidBridge.');
+
+        // Log the available methods on omidBridge
+        console.log('OMID Bridge:', window.omidBridge);
+
+        if (window.omidBridge.isSupported) {
+          console.log('OMID Bridge supports interactions.');
+          // Call any specific method for tracking or interacting here
+        }
+
+      } else if (window.omidSessionInterface) {
+        console.log('OMID is available via omidSessionInterface.');
+
+        var sessionClient = new omidSessionInterface.SessionClient();
+        sessionClient.startSession();
+
+        sessionClient.addEventListener('geometryChange', function(event) {
+          var viewablePercentage = event.geometry.visiblePercentage;
+          console.log('Viewable percentage: ' + viewablePercentage + '%');
+        });
+
+        sessionClient.addEventListener('sessionFinish', function() {
+          console.log('OMID session finished.');
+        });
+      } else {
+        console.log('OMID session interface or bridge not available.');
+      }
+    }
+
+    console.log('omid global: ' , window.omidGlobal, window.omid, window.omidSessionInterface, window.omidBridge);
+    
+
+    // Handle content pause for ads
+    function onContentPauseRequested() {
+      videoElement.pause();
+    }
+
+    // Handle content resume after ads
+    function onContentResumeRequested() {
+      videoElement.play();
+    }
+
+    // Handle ad loading error
+    function onAdError(adErrorEvent) {
+      console.log('Ad error: ' + adErrorEvent.getError().toString());
+      if (adsManager) {
+        adsManager.destroy();
+      }
+      videoElement.play();
+    }
+  </script>
+</body>
+</html>
